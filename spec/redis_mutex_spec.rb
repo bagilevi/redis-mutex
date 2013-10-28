@@ -137,6 +137,12 @@ describe Redis::Mutex do
     expect { Redis::Mutex.lock!(:test_lock, mutex_options) }.to raise_error(Redis::Mutex::LockError)
   end
 
+  it 'raises custom LockError if configured' do
+    mutex_options[:lock_error_class] = (CustomLockError = Class.new(Exception))
+    expect { Redis::Mutex.lock!(:test_lock, mutex_options) }.to_not raise_error
+    expect { Redis::Mutex.lock!(:test_lock, mutex_options) }.to raise_error(CustomLockError)
+  end
+
   it 'raises UnlockError if lock not obtained' do
     mutex = Redis::Mutex.new(:test_lock)
     mutex.lock.should be_true

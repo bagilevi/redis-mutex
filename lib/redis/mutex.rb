@@ -25,6 +25,7 @@ class Redis
       @block = options[:block] || 1
       @sleep = options[:sleep] || 0.1
       @expire = options[:expire] || DEFAULT_EXPIRE
+      @lock_error_class = options[:lock_error_class]
 
       @redis = options[:redis] ? self.class.build_redis_namespace(options[:redis]) : self.class.default_redis
     end
@@ -93,11 +94,15 @@ class Redis
     alias with_lock synchronize # for compatibility
 
     def lock!
-      lock or raise LockError, "failed to acquire lock #{key.inspect}"
+      lock or raise lock_error_class, "failed to acquire lock #{key.inspect}"
     end
 
     def unlock!(force = false)
       unlock(force) or raise UnlockError, "failed to release lock #{key.inspect}"
+    end
+
+    def lock_error_class
+      @lock_error_class || LockError
     end
 
     class << self
