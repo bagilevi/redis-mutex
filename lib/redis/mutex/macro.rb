@@ -33,7 +33,7 @@ class Redis
             key = self.class.name << '#' << target.to_s
 
             begin
-              Redis::Mutex.with_lock(key, options) do
+              Redis::Mutex.synchronize(key, options) do
                 send(without_method, *args)
               end
             rescue Redis::Mutex::LockError

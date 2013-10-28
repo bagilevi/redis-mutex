@@ -60,7 +60,7 @@ describe Redis::Mutex do
     start = Time.now
     expires_in = 10
     mutex = Redis::Mutex.new(:test_lock, :expire => expires_in)
-    mutex.with_lock do
+    mutex.synchronize do
       # TODO refactor
       mutex.redis.get(mutex.key).to_f.should be_within(1.0).of((start + expires_in).to_f)
     end
@@ -91,7 +91,7 @@ describe Redis::Mutex do
   it 'ensures unlocking when something goes wrong in the block' do
     mutex = Redis::Mutex.new(:test_lock)
     begin
-      mutex.with_lock do
+      mutex.synchronize do
         raise "Something went wrong!"
       end
     rescue RuntimeError
@@ -125,11 +125,11 @@ describe Redis::Mutex do
   end
 
   it 'returns value of block' do
-    Redis::Mutex.with_lock(:test_lock) { :test_result }.should == :test_result
+    Redis::Mutex.synchronize(:test_lock) { :test_result }.should == :test_result
   end
 
-  it 'requires block for #with_lock' do
-    expect { Redis::Mutex.with_lock(:test_lock) }.to raise_error(LocalJumpError) #=> no block given (yield)
+  it 'requires block for #synchronize' do
+    expect { Redis::Mutex.synchronize(:test_lock) }.to raise_error(LocalJumpError) #=> no block given (yield)
   end
 
   it 'raises LockError if lock not obtained' do
@@ -174,6 +174,11 @@ describe Redis::Mutex do
     end
   end
 
+  it 'supports with_lock syntax' do
+    Redis::Mutex.synchronize(:test_lock) { :test_result }.should == :test_result
+    Redis::Mutex.new(:test_lock).synchronize { :test_result }.should == :test_result
+  end
+
   describe 'stress test' do
     LOOP_NUM = 1000
 
@@ -183,7 +188,7 @@ describe Redis::Mutex do
       mutex = Redis::Mutex.new(:test_lock, :expire => 1, :block => 10, :sleep => 0.01)
       result = 0
       LOOP_NUM.times do |i|
-        mutex.with_lock do
+        mutex.synchronize do
           result += 1
           sleep rand/100
         end

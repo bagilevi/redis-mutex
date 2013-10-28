@@ -80,7 +80,7 @@ class Redis
       end
     end
 
-    def with_lock
+    def synchronize
       if lock!
         begin
           @result = yield
@@ -90,6 +90,7 @@ class Redis
       end
       @result
     end
+    alias with_lock synchronize # for compatibility
 
     def lock!
       lock or raise LockError, "failed to acquire lock #{key.inspect}"
@@ -139,12 +140,13 @@ class Redis
         new(object, options).lock!
       end
 
-      def with_lock(object, options = {}, &block)
-        new(object, options).with_lock(&block)
+      def synchronize(object, options = {}, &block)
+        new(object, options).synchronize(&block)
       end
+      alias with_lock synchronize # for compatibility
 
       def raise_assertion_error
-        raise AssertionError, 'block syntax has been removed from #lock, use #with_lock instead'
+        raise AssertionError, 'block syntax has been removed from #lock, use #synchronize instead'
       end
     end
   end

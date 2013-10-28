@@ -13,7 +13,7 @@ Synopsis
 In the following example, only one thread / process / server can enter the locked block at one time.
 
 ```ruby
-Redis::Mutex.with_lock(:your_lock_name) do
+Redis::Mutex.synchronize(:your_lock_name) do
   # do something exclusively
 end
 ```
@@ -41,7 +41,7 @@ Changes in v2.0
 ---------------
 
 * **Exception-based control flow**: Added `lock!` and `unlock!`, which raises an exception when fails to acquire a lock. Raises `Redis::Mutex::LockError` and `Redis::Mutex::UnlockError` respectively.
-* **INCOMPATIBLE CHANGE**: `#lock` no longer accepts a block. Use `#with_lock` instead, which uses `lock!` internally and returns the value of block.
+* **INCOMPATIBLE CHANGE**: `#lock` no longer accepts a block. Use `#synchronize` instead, which uses `lock!` internally and returns the value of block.
 * `unlock` returns boolean values for success / failure, for consistency with `lock`.
 
 Install
@@ -69,7 +69,7 @@ passing a `:redis` value in the options hash:
 
 
 ```Ruby
-Redis::Mutex.with_lock("lock-key", :redis => Redis.new(:host => 'localhost')) do
+Redis::Mutex.synchronize("lock-key", :redis => Redis.new(:host => 'localhost')) do
     # Do something
 end
 ```
@@ -77,7 +77,7 @@ end
 Or:
 
 ```Ruby
-Redis::Mutex.new("lock-key", :redis => Redis.new(:host => 'localhost')).with_lock do
+Redis::Mutex.new("lock-key", :redis => Redis.new(:host => 'localhost')).synchronize do
     # Do Something
 end
 ```
@@ -91,11 +91,11 @@ mutex.lock!                               # Try to acquire the lock, raises exce
 mutex.unlock                              # Try to release the lock, returns false when failed
 mutex.unlock!                             # Try to release the lock, raises exception when failed
 mutex.locked?                             # Find out if resource already locked
-mutex.with_lock                           # Try to acquire the lock, execute the block, then return the value of the block.
+mutex.synchronize                           # Try to acquire the lock, execute the block, then return the value of the block.
                                           # Raises exception when failed to acquire the lock.
 
 Redis::Mutex.sweep                        # Remove all expired locks
-Redis::Mutex.with_lock(key, options)      # Shortcut to new + with_lock
+Redis::Mutex.synchronize(key, options)      # Shortcut to new + synchronize
 ```
 
 The key argument can be symbol, string, or any Ruby objects that respond to `id` method, where the key is automatically set as
@@ -124,7 +124,7 @@ class RoomController < ApplicationController
   before_filter { @room = Room.find(params[:id]) }
   
   def enter
-    Redis::Mutex.with_lock(@room) do    # key => "Room:123"
+    Redis::Mutex.synchronize(@room) do    # key => "Room:123"
       # do something exclusively
     end
     render text: 'success!'
@@ -134,7 +134,7 @@ class RoomController < ApplicationController
 end
 ```
 
-Note that you need to explicitly call the `unlock` method when you don't use `with_lock` and its block syntax. Also it is recommended to
+Note that you need to explicitly call the `unlock` method when you don't use `synchronize` and its block syntax. Also it is recommended to
 put the `unlock` method in the `ensure` clause.
 
 ```ruby
