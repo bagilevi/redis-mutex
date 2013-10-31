@@ -52,9 +52,9 @@ class Redis
       now = Time.now.to_f
       @expires_at = now + @expire
 
-      loop do
-        return true if redis.setnx(key, @expires_at)               # Success, the lock has been acquired
-      end until old_value = redis.get(key)                         # Repeat if unlocked before get
+      return true if redis.setnx(key, @expires_at)               # Success, the lock has been acquired
+      old_value = redis.get(key)
+      return false if ! old_value
 
       return false if old_value.to_f > now              # Check if the lock is still effective
 
